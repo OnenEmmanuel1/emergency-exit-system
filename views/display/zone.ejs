@@ -1,0 +1,142 @@
+<%
+  const initUrgency  = (hazard ? 'hazard' : (signage ? signage.urgency.toLowerCase() : 'normal'));
+  const initArrow    = zone.isExit ? '✅' :
+                       (!signage || !signage.directionName) ? '⛔' : '→';
+  const initLabel    = zone.isExit ? 'THIS IS AN EXIT' :
+                       (!signage || !signage.directionName) ? 'NO ROUTE AVAILABLE' :
+                       'PROCEED TO: ' + signage.directionName.toUpperCase();
+  const initPath     = (signage && !zone.isExit && signage.directionName) ? signage.directionName : '';
+%>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/tokens.css" />
+  <link rel="stylesheet" href="/css/display.css" />
+</head>
+<body>
+<div class="seex-display seex-display--<%= initUrgency %>" id="seex-display-root">
+  <!-- Top bar -->
+  <div class="seex-display__topbar">
+    <span class="seex-display__brand">🚨 SEEX</span>
+    <span class="seex-display__live">
+      <span class="seex-live-dot" id="live-dot"></span>
+      <span style="margin-left:6px; font-size:0.75rem;">Live</span>
+    </span>
+    <a href="/display" style="color:var(--seex-text-dim); font-size:0.78rem;">← All Zones</a>
+  </div>
+
+  <!-- Zone name -->
+  <div class="seex-display__zone" id="display-zone-name"><%= zone.name.toUpperCase() %></div>
+
+  <!-- Arrow / icon -->
+  <div class="seex-display__arrow" id="display-arrow"><%= initArrow %></div>
+
+  <!-- Direction label -->
+  <div class="seex-display__direction" id="display-direction"><%= initLabel %></div>
+
+  <!-- Path -->
+  <% if (initPath) { %>
+  <div class="seex-display__path" id="display-path">→ <%= initPath %></div>
+  <% } else { %>
+  <div class="seex-display__path" id="display-path"></div>
+  <% } %>
+
+  <!-- Urgency badge -->
+  <div class="seex-display__urgency" id="display-urgency">
+    <%= zone.isExit ? 'SAFE — EXIT POINT' : (signage ? signage.urgency.toUpperCase() : 'UNKNOWN') %>
+  </div>
+
+  <% if (hazard) { %>
+  <div class="seex-display__hazard-label" id="display-hazard">⚠️ HAZARD: <%= hazard.type.toUpperCase() %> IN THIS ZONE</div>
+  <% } else { %>
+  <div class="seex-display__hazard-label" id="display-hazard" style="display:none;"></div>
+  <% } %>
+
+  <!-- Disclaimer -->
+  <div class="seex-display__disclaimer">
+    ⚠️ SEEX ACADEMIC PROTOTYPE — NOT a certified life-safety system. Follow official building evacuation procedures.
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+(function () {
+  'use strict';
+  const ZONE_ID = <%= zone.zoneId %>;
+
+  const root       = document.getElementById('seex-display-root');
+  const arrowEl    = document.getElementById('display-arrow');
+  const dirEl      = document.getElementById('display-direction');
+  const pathEl     = document.getElementById('display-path');
+  const urgEl      = document.getElementById('display-urgency');
+  const hazardEl   = document.getElementById('display-hazard');
+  const liveDot    = document.getElementById('live-dot');
+
+  const URGENCY_CLASSES = ['seex-display--normal', 'seex-display--elevated', 'seex-display--critical', 'seex-display--hazard', 'seex-display--exit'];
+
+  function setUrgencyClass(cls) {
+    for (const c of URGENCY_CLASSES) root.classList.remove(c);
+    root.classList.add('seex-display--' + cls);
+  }
+
+  const socket = io();
+
+  socket.on('connect',    () => { liveDot.style.background = '#16a34a'; });
+  socket.on('disconnect', () => { liveDot.style.background = '#d93025'; });
+
+  socket.on('signage_update', (updates) => {
+    const u = updates.find(x => x.zoneId === ZONE_ID);
+    if (!u) return;
+
+    if (u.isExit) {
+      setUrgencyClass('exit');
+      arrowEl.textContent = '✅';
+      dirEl.textContent   = 'THIS IS AN EXIT';
+      urgEl.textContent   = 'SAFE — EXIT POINT';
+      pathEl.textContent  = '';
+      hazardEl.style.display = 'none';
+      return;
+    }
+
+    if (u.isHazard) {
+      setUrgencyClass('hazard');
+      arrowEl.textContent = '⚠';
+      dirEl.textContent = 'HAZARD IN THIS ZONE';
+      urgEl.textContent = 'CRITICAL — DO NOT ENTER';
+      pathEl.textContent = 'Follow official building procedures and staff instructions.';
+      hazardEl.style.display = '';
+      hazardEl.textContent = 'ACTIVE HAZARD — THIS ZONE IS EXCLUDED FROM ROUTING';
+      return;
+    }
+
+    // Determine urgency / hazard state
+    if (!u.recommendedDirectionZoneId) {
+      // No route — zone may be isolated by hazards
+      setUrgencyClass('hazard');
+      arrowEl.textContent = '⛔';
+      dirEl.textContent   = 'NO ROUTE AVAILABLE';
+      urgEl.textContent   = 'CRITICAL';
+      pathEl.textContent  = 'All exits may be blocked. Follow staff instructions.';
+      hazardEl.style.display = '';
+      hazardEl.textContent   = '⚠️ ROUTE UNAVAILABLE';
+      return;
+    }
+
+    setUrgencyClass(u.urgency.toLowerCase());
+    arrowEl.textContent = '→';
+    dirEl.textContent   = 'PROCEED TO: ' + (u.recommendedDirectionName || '').toUpperCase();
+    urgEl.textContent   = u.urgency.toUpperCase();
+    if (u.pathNames && u.pathNames.length > 1) {
+      pathEl.textContent = 'Path: ' + u.pathNames.join(' → ');
+    } else {
+      pathEl.textContent = '';
+    }
+    hazardEl.style.display = 'none';
+  });
+})();
+</script>
+</body>
+</html>

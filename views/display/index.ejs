@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/tokens.css" />
+  <link rel="stylesheet" href="/css/display.css" />
+</head>
+<body>
+  <div class="seex-picker">
+    <div class="seex-picker__title">🚨 SEEX Exit Status</div>
+    <p class="seex-picker__sub">
+      Select a zone to view its real-time exit guidance display.<br />
+      This screen is public — no login required.
+    </p>
+
+    <div class="seex-picker__grid">
+      <% for (const z of zones) { %>
+      <a href="/display/<%= z.zoneId %>" class="seex-picker__zone <%= z.isExit ? 'seex-picker__zone--exit' : '' %>">
+        <div class="seex-picker__zone-icon"><%= z.isExit ? '🚪' : '🏢' %></div>
+        <%= z.name %>
+        <% if (z.isExit) { %><br/><small style="font-size:0.75rem;font-weight:400;opacity:0.8">EXIT ZONE</small><% } %>
+      </a>
+      <% } %>
+    </div>
+
+    <p style="margin-top:40px; font-size:0.72rem; color:var(--seex-text-dim); text-align:center;">
+      ⚠️ SEEX is an academic software prototype — NOT a substitute for certified life-safety signage or fire-alarm systems.
+    </p>
+  </div>
+</body>
+</html>

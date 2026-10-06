@@ -1,0 +1,39 @@
+/* ============================================================
+   SEEX — Design Tokens
+   Flat CSS only. Zero gradients. Inter font.
+   CSS custom properties namespaced as --seex-*
+   ============================================================ */
+
+:root {
+  /* ── Palette ───────────────────────────────────────────── */
+  --seex-primary:     #f0df00;   /* Signal yellow — primary actions */
+  --seex-primary-dk:  #d2c400;   /* Deeper signal yellow — hover states */
+  --seex-danger:      #c83f48;   /* Solid red — hazard / critical */
+  --seex-danger-dk:   #a92d37;
+  --seex-warning:     #b7791f;   /* Solid amber — elevated density */
+  --seex-warning-dk:  #975f14;
+  --seex-success:     #16845b;   /* Solid green — normal / safe */
+  --seex-success-dk:  #106d4a;
+  --seex-bg:          #171819;   /* Page background */
+  --seex-surface:     #222324;   /* Card / panel background */
+  --seex-surface-2:   #2c2e30;   /* Elevated surface */
+  --seex-border:      #3a3c3e;   /* Border / divider */
+  --seex-text:        #f2f2ee;   /* Primary text */
+  --seex-text-muted:  #b8b9b5;   /* Secondary / label text */
+  --seex-text-dim:    #92948f;   /* Disabled / placeholder */
+  --seex-nav:         #202122;
+  --seex-nav-hover:   #303133;
+  --seex-nav-text:    #c7c8c3;
+
+  /* ── Typography ────────────────────────────────────────── */
+  --seex-font:        'Inter', system-ui, sans-serif;
+  --seex-mono:        'JetBrains Mono', 'Fira Code', monospace;
+
+  /* ── Spacing ────────────────────────────────────────────── */
+  --seex-radius:      5px;
+  --seex-radius-lg:   8px;
+  --seex-shadow:      0 8px 24px rgba(0,0,0,0.22);
+
+  /* ── Transitions ────────────────────────────────────────── */
+  --seex-transition:  0.15s ease;
+}

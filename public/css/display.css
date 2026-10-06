@@ -1,0 +1,214 @@
+/* ============================================================
+   SEEX — Exit Status Display Stylesheet
+   High-contrast, readable from distance.
+   Flat colors. No gradients. Large typography.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&display=swap');
+@import 'tokens.css';
+
+/* Keep the public, full-screen wayfinding display high contrast. */
+html {
+  --seex-bg: #0f1117;
+  --seex-surface: #1c1f26;
+  --seex-surface-2: #272b35;
+  --seex-border: #2e3340;
+  --seex-text: #e8eaf0;
+  --seex-text-muted: #a5adbd;
+  --seex-text-dim: #7f8798;
+  --seex-success: #22c55e;
+  --seex-warning: #f59e0b;
+  --seex-danger: #ef4444;
+  --seex-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  font-family: var(--seex-font);
+  background: var(--seex-bg);
+  color: var(--seex-text);
+  overflow: hidden;
+}
+
+/* ── Full-screen display ─────────────────────────────────── */
+.seex-display {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px;
+  transition: background 0.4s ease;
+}
+
+.seex-display--normal   { background: #0d1f12; }
+.seex-display--elevated { background: #1f1700; }
+.seex-display--critical { background: #1f0505; }
+.seex-display--hazard   { background: #1f0000; }
+
+/* Zone name */
+.seex-display__zone {
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  font-weight: 600;
+  color: var(--seex-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 16px;
+}
+
+/* Big direction arrow */
+.seex-display__arrow {
+  font-size: clamp(8rem, 20vw, 14rem);
+  line-height: 1;
+  margin: 20px 0;
+  animation: seex-arrow-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes seex-arrow-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.75; }
+}
+
+/* Direction label */
+.seex-display__direction {
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin-bottom: 12px;
+}
+
+.seex-display--normal   .seex-display__direction { color: var(--seex-success); }
+.seex-display--elevated .seex-display__direction { color: var(--seex-warning); }
+.seex-display--critical .seex-display__direction { color: var(--seex-danger);  }
+.seex-display--hazard   .seex-display__direction { color: var(--seex-danger);  }
+
+/* Path */
+.seex-display__path {
+  font-size: clamp(1rem, 2.5vw, 1.5rem);
+  color: var(--seex-text-muted);
+  margin-bottom: 24px;
+}
+
+/* Urgency banner */
+.seex-display__urgency {
+  font-size: clamp(1.2rem, 3vw, 2rem);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 10px 32px;
+  border-radius: var(--seex-radius);
+}
+
+.seex-display--normal   .seex-display__urgency { background: var(--seex-success); color: #fff; }
+.seex-display--elevated .seex-display__urgency { background: var(--seex-warning); color: #000; }
+.seex-display--critical .seex-display__urgency { background: var(--seex-danger);  color: #fff; }
+.seex-display--hazard   .seex-display__urgency { background: var(--seex-danger);  color: #fff; }
+
+/* Hazard overlay */
+.seex-display__hazard-label {
+  font-size: clamp(1rem, 2.5vw, 1.5rem);
+  font-weight: 600;
+  color: var(--seex-danger);
+  margin-top: 16px;
+  letter-spacing: 0.06em;
+}
+
+/* EXIT zone state */
+.seex-display--exit {
+  background: #0d1f12;
+}
+.seex-display--exit .seex-display__arrow { color: var(--seex-success); }
+.seex-display--exit .seex-display__direction { color: var(--seex-success); }
+
+/* Live indicator bar at top */
+.seex-display__topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background: rgba(0,0,0,0.4);
+  font-size: 0.8rem;
+  color: var(--seex-text-muted);
+  z-index: 10;
+}
+
+.seex-display__brand {
+  font-weight: 700;
+  color: var(--seex-text);
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+}
+
+.seex-display__live {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.seex-display__disclaimer {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  text-align: center;
+  padding: 6px;
+  background: rgba(0,0,0,0.5);
+  font-size: 0.7rem;
+  color: var(--seex-text-dim);
+}
+
+/* Zone picker page */
+.seex-picker {
+  max-width: 700px;
+  margin: 60px auto;
+  padding: 0 24px;
+}
+
+.seex-picker__title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.seex-picker__sub {
+  color: var(--seex-text-muted);
+  margin-bottom: 32px;
+}
+
+.seex-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.seex-picker__zone {
+  background: var(--seex-surface);
+  border: 1px solid var(--seex-border);
+  border-radius: var(--seex-radius-lg);
+  padding: 20px;
+  text-align: center;
+  color: var(--seex-text);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background var(--seex-transition), border-color var(--seex-transition);
+  display: block;
+}
+
+.seex-picker__zone:hover {
+  background: var(--seex-surface-2);
+  border-color: var(--seex-primary);
+  text-decoration: none;
+  color: var(--seex-text);
+}
+
+.seex-picker__zone--exit {
+  border-color: var(--seex-success);
+  color: var(--seex-success);
+}
+
+.seex-picker__zone-icon { font-size: 2rem; margin-bottom: 8px; }

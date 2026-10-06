@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= title %></title>
+  <!-- TensorFlow.js and COCO-SSD — loaded ONLY on this page -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/css/tokens.css" />
+  <link rel="stylesheet" href="/css/main.css" />
+  <style>
+    .seex-cam-container {
+      position: relative;
+      background: #000;
+      border: 2px solid var(--seex-border);
+      border-radius: var(--seex-radius-lg);
+      overflow: hidden;
+      max-width: 640px;
+    }
+    #seex-webcam-video {
+      width: 100%;
+      display: block;
+    }
+    #seex-webcam-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+    }
+    .seex-count-overlay {
+      position: absolute;
+      top: 12px; right: 12px;
+      background: rgba(0,0,0,0.75);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 1.5rem;
+      font-weight: 700;
+      pointer-events: none;
+    }
+    #seex-detect-log {
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 0.78rem;
+      font-family: var(--seex-mono);
+      background: var(--seex-bg);
+      border: 1px solid var(--seex-border);
+      border-radius: var(--seex-radius);
+      padding: 10px;
+      color: var(--seex-text-muted);
+    }
+  </style>
+</head>
+<body>
+<div class="seex-wrapper">
+  <%- include('../partials/sidebar', { user, activePage: 'density' }) %>
+  <main class="seex-main">
+    <div class="seex-disclaimer">
+      ⚠️ <strong>Academic Prototype:</strong> SEEX is NOT a certified life-safety system.
+    </div>
+
+    <div class="seex-topbar">
+      <div>
+        <div class="seex-page-title">📷 Webcam People Counter</div>
+        <div class="seex-page-subtitle">
+          TensorFlow.js + COCO-SSD running in your browser — real neural-network person detection, not simulated.
+        </div>
+      </div>
+      <a href="/density" class="seex-btn seex-btn--ghost">← Back</a>
+    </div>
+
+    <div class="seex-alert seex-alert--info seex-mb-3" style="font-size:0.85rem;">
+      ℹ️ <strong>How it works:</strong> This page loads a pretrained COCO-SSD neural network (TensorFlow.js) and runs
+      inference on your webcam feed every 2 seconds. Each detected "person" class above the confidence threshold is
+      counted. The count is posted to <code>POST /api/density/webcam</code>, writing a real <code>density_readings</code>
+      row (source='Webcam'). <strong>Requires a physical camera.</strong> Works best with good lighting and clear sightlines.
+    </div>
+
+    <div class="seex-grid-2">
+      <div>
+        <!-- Controls -->
+        <div class="seex-card seex-mb-2">
+          <div class="seex-card__header"><span class="seex-card__title">Detection Controls</span></div>
+
+          <div class="seex-form-group">
+            <label class="seex-label" for="seex-zone-select">Target Zone</label>
+            <select id="seex-zone-select" class="seex-select">
+              <option value="">Select zone for this camera…</option>
+              <% for (const z of zones) { %>
+              <option value="<%= z.zoneId %>"><%= z.name %></option>
+              <% } %>
+            </select>
+          </div>
+
+          <div class="seex-form-group">
+            <label class="seex-label" for="seex-confidence">
+              Min Confidence: <span id="conf-label">0.50</span>
+            </label>
+            <input id="seex-confidence" type="range" min="0.1" max="0.95" step="0.05" value="0.5"
+              style="width:100%; accent-color: var(--seex-primary);"
+              oninput="document.getElementById('conf-label').textContent = parseFloat(this.value).toFixed(2)" />
+          </div>
+
+          <div style="display:flex; gap:10px;">
+            <button id="seex-start-btn" class="seex-btn seex-btn--primary" disabled>▶ Start Detection</button>
+            <button id="seex-stop-btn"  class="seex-btn seex-btn--danger"  disabled>■ Stop</button>
+          </div>
+        </div>
+
+        <!-- Status -->
+        <div id="seex-cam-status" class="seex-alert seex-alert--info">Initialising model…</div>
+
+        <!-- Stats -->
+        <div class="seex-stat seex-mb-2">
+          <div class="seex-stat__icon seex-stat__icon--primary">👥</div>
+          <div>
+            <div class="seex-stat__value" id="seex-person-count">—</div>
+            <div class="seex-stat__label">People detected (current frame)</div>
+          </div>
+        </div>
+
+        <!-- Detection log -->
+        <div class="seex-card">
+          <div class="seex-card__header"><span class="seex-card__title">Detection Log</span></div>
+          <div id="seex-detect-log"><span style="color:var(--seex-text-dim)">Waiting for model…</span></div>
+        </div>
+      </div>
+
+      <!-- Camera feed -->
+      <div>
+        <div class="seex-cam-container">
+          <video id="seex-webcam-video" autoplay muted playsinline></video>
+          <canvas id="seex-webcam-canvas"></canvas>
+          <div class="seex-count-overlay" id="seex-count-overlay-display">👥 <span id="seex-count-display">—</span></div>
+        </div>
+        <p class="seex-text-muted seex-mt-2" style="font-size:0.78rem;">
+          Blue boxes = detected persons. Model: COCO-SSD (MobileNet backbone). Inference runs every 2 s.
+        </p>
+      </div>
+    </div>
+
+    <footer class="seex-footer">SEEX v1.0 &mdash; Academic Prototype. NOT a certified life-safety system.</footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script src="/js/webcam.js"></script>
+<!-- Mirror count to overlay -->
+<script>
+  const countEl = document.getElementById('seex-person-count');
+  const countOverlay = document.getElementById('seex-count-display');
+  const observer = new MutationObserver(() => { countOverlay.textContent = countEl.textContent; });
+  observer.observe(countEl, { childList: true, subtree: true, characterData: true });
+</script>
+</body>
+</html>

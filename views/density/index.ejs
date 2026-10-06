@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= title %></title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/css/tokens.css" />
+  <link rel="stylesheet" href="/css/main.css" />
+</head>
+<body>
+<div class="seex-wrapper">
+  <%- include('../partials/sidebar', { user, activePage: 'density' }) %>
+  <main class="seex-main">
+    <div class="seex-disclaimer">
+      ⚠️ <strong>Academic Prototype:</strong> SEEX is NOT a certified life-safety system.
+    </div>
+
+    <div class="seex-topbar">
+      <div>
+        <div class="seex-page-title">Density Input</div>
+        <div class="seex-page-subtitle">
+          Webcam observations, manual reports, and clearly labeled simulated demo readings share the same routing input.
+        </div>
+      </div>
+      <a href="/density/camera" class="seex-btn seex-btn--primary">📷 Open Webcam Counter</a>
+    </div>
+
+    <% if (error) { %><div class="seex-alert seex-alert--error"><%= error %></div><% } %>
+    <% if (success) { %><div class="seex-alert seex-alert--success"><%= success %></div><% } %>
+
+    <div class="seex-grid-2 seex-mb-3">
+      <!-- ── Manual density override ────────────────────────── -->
+      <div class="seex-card">
+        <div class="seex-card__header">
+          <span class="seex-card__title">Manual Density Override</span>
+          <span class="seex-badge" style="background:#f59e0b22;color:var(--seex-warning)">source: Manual</span>
+        </div>
+        <p class="seex-text-muted seex-mb-2" style="font-size:0.85rem;">
+          Set the current person count for a zone manually. Use for zones without a camera.
+          This writes a real <code>density_readings</code> row (source='Manual') and immediately
+          triggers route recomputation.
+        </p>
+        <form method="POST" action="/density/manual">
+          <div class="seex-form-group">
+            <label class="seex-label" for="d-zone">Zone</label>
+            <select id="d-zone" class="seex-select" name="zoneId" required>
+              <option value="">Select zone…</option>
+              <% for (const z of zones) { %>
+              <option value="<%= z.zoneId %>">
+                <%= z.name %> (current: <%= z.currentCount %> / <%= z.capacityThreshold %>)
+              </option>
+              <% } %>
+            </select>
+          </div>
+          <div class="seex-form-group">
+            <label class="seex-label" for="d-count">Person Count</label>
+            <input id="d-count" class="seex-input" name="personCount" type="number" min="0" required value="0" />
+          </div>
+          <button id="density-submit-btn" type="submit" class="seex-btn seex-btn--primary">Record Reading</button>
+        </form>
+      </div>
+
+      <!-- ── Webcam info ─────────────────────────────────────── -->
+      <div class="seex-card">
+        <div class="seex-card__header">
+          <span class="seex-card__title">Webcam Detection (TensorFlow.js)</span>
+          <span class="seex-badge seex-badge--webcam">source: Webcam</span>
+        </div>
+        <p class="seex-text-muted seex-mb-2" style="font-size:0.85rem;">
+          Real-time people counting using the COCO-SSD pretrained neural network, running
+          entirely in the browser via TensorFlow.js. Aimed at a webcam pointed at the zone.
+        </p>
+        <div class="seex-alert seex-alert--info" style="font-size:0.82rem; margin-bottom:14px;">
+          ℹ️ <strong>Genuine limitation:</strong> Webcam detection requires a real camera with
+          reasonable lighting. In poor conditions the model may miss people or generate false
+          positives. This is real computer vision — not a simulation — but not a substitute for
+          dedicated CCTV infrastructure.
+        </div>
+        <a href="/density/camera" class="seex-btn seex-btn--primary" id="webcam-launch-btn">📷 Launch Webcam Counter</a>
+      </div>
+    </div>
+
+    <!-- ── Recent readings ────────────────────────────────────── -->
+    <div class="seex-card">
+      <div class="seex-card__header">
+        <span class="seex-card__title">Recent Density Readings</span>
+      </div>
+      <div class="seex-table-wrap">
+        <table class="seex-table">
+          <thead>
+            <tr><th>Zone</th><th>Count</th><th>Source</th><th>Recorded At</th></tr>
+          </thead>
+          <tbody>
+            <% for (const r of recentReadings) { %>
+            <tr>
+              <td><%= r.zoneName %></td>
+              <td><strong><%= r.personCount %></strong></td>
+              <td><span class="seex-badge seex-badge--<%= r.source.toLowerCase() %>"><%= r.source %></span></td>
+              <td class="seex-mono" style="font-size:0.8rem;"><%= new Date(r.recordedAt).toLocaleString() %></td>
+            </tr>
+            <% } %>
+            <% if (!recentReadings.length) { %>
+            <tr><td colspan="4" style="text-align:center; color:var(--seex-text-dim);">No readings yet.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer class="seex-footer">SEEX v1.0 &mdash; Academic Prototype. NOT a certified life-safety system.</footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script src="/socket.io/socket.io.js"></script>
+</body>
+</html>

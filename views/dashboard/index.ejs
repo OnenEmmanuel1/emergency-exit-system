@@ -1,0 +1,245 @@
+<%
+  const activePage = 'dashboard';
+  const body = ``;
+  // We render inline below — this file IS the body
+%>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= title %></title>
+  <meta name="description" content="SEEX Admin Dashboard — live zone status, hazards, and routing." />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/css/tokens.css" />
+  <link rel="stylesheet" href="/css/main.css" />
+</head>
+<body>
+<div class="seex-wrapper">
+  <%- include('../partials/sidebar', { user, activePage: 'dashboard' }) %>
+  <main class="seex-main">
+    <div class="seex-disclaimer">
+      ⚠️ <strong>Academic Prototype:</strong> SEEX is NOT a certified life-safety system. Not a substitute for NFPA 101/ISO 23601 signage or certified fire-alarm equipment.
+    </div>
+
+    <div class="seex-topbar">
+      <div>
+        <div class="seex-page-title">Live Dashboard</div>
+        <div class="seex-page-subtitle">Real-time zone status, routing, and hazard overview</div>
+      </div>
+      <div class="seex-flex seex-gap-2">
+        <span class="seex-live-dot" id="seex-live-dot"></span>
+        <span class="seex-text-muted" style="font-size:0.8rem;">Live via Socket.IO</span>
+      </div>
+    </div>
+
+    <section class="ops-overview" aria-label="Building evacuation overview">
+      <div class="ops-control-panel">
+        <div class="ops-panel-heading">
+          <span class="ops-eyebrow">Live operations</span>
+          <span class="ops-status"><span class="seex-live-dot"></span> MONITORING</span>
+        </div>
+        <h2>Building overview</h2>
+        <p class="ops-intro">Current guidance across the connected zones.</p>
+        <div class="ops-route-summary">
+          <div class="ops-route-summary__icon" aria-hidden="true">↗</div>
+          <div><span class="ops-eyebrow">Routing status</span><strong><%= hazards.length ? 'Rerouting around hazards' : 'Routes being monitored' %></strong></div>
+        </div>
+        <div class="ops-quick-stats">
+          <div><span>Zones monitored</span><strong><%= zones.length %></strong></div>
+          <div><span>Active hazards</span><strong class="<%= hazards.length ? 'is-alert' : '' %>"><%= hazards.length %></strong></div>
+          <div><span>Exit points</span><strong><%= zones.filter(z => z.isExit).length %></strong></div>
+        </div>
+        <a href="/display" target="_blank" class="seex-btn seex-btn--primary ops-display-link">Open exit display <span aria-hidden="true">↗</span></a>
+        <span class="ops-map-note">Zone diagram · schematic, not to scale</span>
+      </div>
+      <div class="ops-map-panel">
+        <div class="ops-map-toolbar">
+          <div><span class="ops-eyebrow">SEEX / FACILITY</span><strong>Zone network</strong></div>
+          <a href="/zones" class="ops-map-action">Edit building graph <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="ops-map-canvas" role="list" aria-label="Building zones and current evacuation guidance">
+          <% for (const z of zones) { %>
+            <% const s = signage.find(item => item.zoneId === z.zoneId); %>
+            <% const activeHazard = hazards.find(item => item.zoneId === z.zoneId); %>
+            <% const mapState = activeHazard ? 'critical' : (z.isExit ? 'exit' : (s ? s.urgency.toLowerCase() : 'normal')); %>
+            <a role="listitem" class="ops-zone ops-zone--<%= mapState %>" data-zone-map="<%= z.zoneId %>" data-zone-exit="<%= z.isExit ? 'true' : 'false' %>" href="/display/<%= z.zoneId %>" aria-label="<%= z.name %><%= activeHazard ? ', hazard ' + activeHazard.type : (z.isExit ? ', exit point' : (s && s.directionName ? ', route to ' + s.directionName : '')) %>">
+              <span class="ops-zone__type"><%= activeHazard ? 'HAZARD' : (z.isExit ? 'EXIT POINT' : 'ZONE') %></span>
+              <strong><%= z.name %></strong>
+              <% if (activeHazard) { %><span class="ops-zone__route" data-zone-map-route="<%= z.zoneId %>">! <%= activeHazard.type %></span>
+              <% } else if (z.isExit) { %><span class="ops-zone__route" data-zone-map-route="<%= z.zoneId %>">Safe exit</span>
+              <% } else if (s && s.directionName) { %><span class="ops-zone__route" data-zone-map-route="<%= z.zoneId %>">Route → <%= s.directionName %></span>
+              <% } else { %><span class="ops-zone__route" data-zone-map-route="<%= z.zoneId %>">No route assigned</span><% } %>
+            </a>
+          <% } %>
+        </div>
+        <div class="ops-map-legend"><span><i class="legend-dot legend-dot--normal"></i> Clear</span><span><i class="legend-dot legend-dot--elevated"></i> Elevated</span><span><i class="legend-dot legend-dot--critical"></i> Critical</span><span><i class="legend-dot legend-dot--exit"></i> Exit</span></div>
+      </div>
+    </section>
+
+    <!-- ── Stat row ─────────────────────────────────────────── -->
+    <div class="seex-grid-4 seex-mb-3">
+      <div class="seex-stat">
+        <div class="seex-stat__icon seex-stat__icon--primary">🗺️</div>
+        <div>
+          <div class="seex-stat__value"><%= zones.length %></div>
+          <div class="seex-stat__label">Total Zones</div>
+        </div>
+      </div>
+      <div class="seex-stat">
+        <div class="seex-stat__icon seex-stat__icon--danger">⚠️</div>
+        <div>
+          <div class="seex-stat__value"><%= hazards.length %></div>
+          <div class="seex-stat__label">Active Hazards</div>
+        </div>
+      </div>
+      <div class="seex-stat">
+        <div class="seex-stat__icon seex-stat__icon--warning">👥</div>
+        <div>
+          <div class="seex-stat__value">
+            <%= Object.values(densities).reduce((s, d) => s + d.personCount, 0) %>
+          </div>
+          <div class="seex-stat__label">People in Latest Readings</div>
+        </div>
+      </div>
+      <div class="seex-stat">
+        <div class="seex-stat__icon seex-stat__icon--success">🚪</div>
+        <div>
+          <div class="seex-stat__value"><%= zones.filter(z => z.isExit).length %></div>
+          <div class="seex-stat__label">Active Exits</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Active hazards banner ─────────────────────────────── -->
+    <% if (hazards.length > 0) { %>
+    <div class="seex-alert seex-alert--error seex-mb-3">
+      <strong>🔥 Active Hazards:</strong>
+      <% for (const h of hazards) { %>
+        <span class="seex-badge seex-badge--active" style="margin-left:8px;">
+          <%= h.type %> — <%= h.zoneName %>
+        </span>
+      <% } %>
+      <a href="/hazards" style="margin-left:10px; color:inherit; font-weight:600;">Manage →</a>
+    </div>
+    <% } %>
+
+    <div class="seex-grid-2 seex-mb-3">
+      <!-- ── Zone Status Table ──────────────────────────────── -->
+      <div class="seex-card">
+        <div class="seex-card__header">
+          <span class="seex-card__title">Zone Status</span>
+          <a href="/zones" class="seex-btn seex-btn--ghost seex-btn--sm">Manage Zones</a>
+        </div>
+        <div class="seex-table-wrap">
+          <table class="seex-table">
+            <thead>
+              <tr>
+                <th>Zone</th>
+                <th>Count</th>
+                <th>Latest source</th>
+                <th>Urgency</th>
+                <th>Direction →</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% for (const z of zones) { %>
+              <% const d = densities[z.zoneId]; %>
+              <% const s = signage.find(s => s.zoneId === z.zoneId); %>
+              <tr>
+                <td>
+                  <strong><%= z.name %></strong>
+                  <% if (z.isExit) { %> <span class="seex-badge seex-badge--exit">Exit</span><% } %>
+                </td>
+                <td>
+                  <% if (d && !z.isExit) { %>
+                    <span data-zone-count="<%= z.zoneId %>"><%= d.personCount %></span> / <%= z.capacityThreshold %>
+                    <div class="seex-density-bar">
+                      <div class="seex-density-bar__fill seex-density-bar__fill--<%= s ? s.urgency.toLowerCase() : 'normal' %>"
+                           data-zone-bar="<%= z.zoneId %>"
+                           data-zone-capacity="<%= z.capacityThreshold %>"
+                           style="width:<%= Math.min(100, (d.personCount / z.capacityThreshold) * 100) %>%"></div>
+                    </div>
+                  <% } else { %>—<% } %>
+                </td>
+                <td>
+                  <% if (d && !z.isExit) { %>
+                    <span class="seex-badge <%= d.source === 'No reading' ? '' : 'seex-badge--' + d.source.toLowerCase() %>"
+                          data-zone-source="<%= z.zoneId %>"><%= d.source %></span>
+                  <% } else { %>—<% } %>
+                </td>
+                <td>
+                  <% if (s) { %>
+                    <span class="seex-badge seex-badge--<%= s.urgency.toLowerCase() %>"
+                          data-zone-urgency="<%= z.zoneId %>"><%= s.urgency %></span>
+                  <% } else { %>—<% } %>
+                </td>
+                <td style="font-size:0.85rem;" data-zone-direction="<%= z.zoneId %>">
+                  <% if (z.isExit) { %>
+                    ✅ This is an exit
+                  <% } else if (s && s.directionName) { %>
+                    → <%= s.directionName %>
+                  <% } else if (hazards.some(h => h.zoneId === z.zoneId)) { %>
+                    Hazard in zone
+                  <% } else { %>
+                    <span style="color:var(--seex-text-dim)">No route</span>
+                  <% } %>
+                </td>
+              </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── Recent Alerts ──────────────────────────────────── -->
+      <div class="seex-card">
+        <div class="seex-card__header">
+          <span class="seex-card__title">Recent Alerts</span>
+        </div>
+        <% if (!recentAlerts.length) { %>
+          <p class="seex-text-muted">No alerts yet.</p>
+        <% } else { %>
+        <div class="seex-table-wrap">
+          <table class="seex-table">
+            <thead><tr><th>Channel</th><th>Message</th><th>Status</th><th>Sent</th></tr></thead>
+            <tbody>
+              <% for (const a of recentAlerts) { %>
+              <tr>
+                <td><span class="seex-badge seex-badge--<%= a.channel.toLowerCase() %>" style="background:#1a56db22;color:var(--seex-primary)"><%= a.channel %></span></td>
+                <td style="font-size:0.8rem; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="<%= a.message %>"><%= a.message %></td>
+                <td><span class="seex-badge seex-badge--<%= a.status.toLowerCase() %>"><%= a.status %></span></td>
+                <td class="seex-mono" style="font-size:0.75rem;"><%= new Date(a.sentAt).toLocaleTimeString() %></td>
+              </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- ── Quick actions ─────────────────────────────────────── -->
+    <div class="seex-card">
+      <div class="seex-card__header">
+        <span class="seex-card__title">Quick Actions</span>
+      </div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <a href="/hazards" class="seex-btn seex-btn--danger">⚠️ Declare Hazard</a>
+        <a href="/density/camera" class="seex-btn seex-btn--primary">📷 Webcam Counter</a>
+        <a href="/density" class="seex-btn seex-btn--ghost">👥 Manual Density</a>
+        <a href="/reports" class="seex-btn seex-btn--ghost">📈 View Reports</a>
+        <a href="/display" target="_blank" class="seex-btn seex-btn--ghost">🖥️ Open Display Screen</a>
+      </div>
+    </div>
+
+    <footer class="seex-footer">
+      SEEX v1.0 &mdash; Smart Emergency Exit System (Academic Prototype) &mdash; NOT validated for real emergency use.
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/dashboard.js"></script>
+</body>
+</html>

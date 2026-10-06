@@ -1,0 +1,45 @@
+<aside class="seex-sidebar">
+  <div class="seex-brand">
+    <div class="seex-brand__icon">🚨</div>
+    <div>
+      <div class="seex-brand__name">SEEX</div>
+      <div class="seex-brand__sub">Emergency Exit System</div>
+    </div>
+  </div>
+
+  <nav class="seex-nav">
+    <div class="seex-nav__section">Monitor</div>
+    <a href="/dashboard" class="seex-nav__link <%= activePage === 'dashboard' ? 'active' : '' %>">
+      <span class="seex-nav__icon">📊</span> Dashboard
+    </a>
+    <a href="/display" class="seex-nav__link <%= activePage === 'display' ? 'active' : '' %>" target="_blank">
+      <span class="seex-nav__icon">🖥️</span> Exit Display
+    </a>
+    <a href="/reports" class="seex-nav__link <%= activePage === 'reports' ? 'active' : '' %>">
+      <span class="seex-nav__icon">📈</span> Reports
+    </a>
+
+    <div class="seex-nav__section">Manage</div>
+    <a href="/zones" class="seex-nav__link <%= activePage === 'zones' ? 'active' : '' %>">
+      <span class="seex-nav__icon">🗺️</span> Building Graph
+    </a>
+    <a href="/hazards" class="seex-nav__link <%= activePage === 'hazards' ? 'active' : '' %>">
+      <span class="seex-nav__icon">⚠️</span> Hazards
+    </a>
+    <a href="/density" class="seex-nav__link <%= activePage === 'density' ? 'active' : '' %>">
+      <span class="seex-nav__icon">👥</span> Density Input
+    </a>
+  </nav>
+
+  <div class="seex-sidebar-footer">
+    <% if (user) { %>
+    <div class="seex-user-info seex-mb-1">
+      <div class="seex-user-info__name"><%= user.fullName %></div>
+      <div class="seex-user-info__role"><%= user.role %></div>
+    </div>
+    <form method="POST" action="/logout">
+      <button type="submit" class="seex-btn seex-btn--ghost seex-btn--sm seex-w100">Sign Out</button>
+    </form>
+    <% } %>
+  </div>
+</aside>

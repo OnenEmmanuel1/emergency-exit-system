@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= title %></title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/css/tokens.css" />
+  <link rel="stylesheet" href="/css/main.css" />
+</head>
+<body>
+<div class="seex-wrapper">
+  <%- include('../partials/sidebar', { user, activePage: 'zones' }) %>
+  <main class="seex-main">
+    <div class="seex-disclaimer">
+      ⚠️ <strong>Academic Prototype:</strong> SEEX is NOT a certified life-safety system.
+    </div>
+
+    <div class="seex-topbar">
+      <div>
+        <div class="seex-page-title">Building Graph Configuration</div>
+        <div class="seex-page-subtitle">Zones (nodes) and pathways (edges) — the routing graph per Section 2.2.2</div>
+      </div>
+    </div>
+
+    <% if (error) { %><div class="seex-alert seex-alert--error"><%= error %></div><% } %>
+    <% if (success || locals.query && locals.query.success) { %>
+      <div class="seex-alert seex-alert--success"><%= success || locals.query.success %></div>
+    <% } %>
+    <% const qs = new URLSearchParams ? '' : ''; %>
+    <% if (typeof query !== 'undefined' && query && query.success) { %>
+      <div class="seex-alert seex-alert--success"><%= query.success %></div>
+    <% } %>
+
+    <div class="seex-grid-2 seex-mb-3">
+      <!-- ── Zone list ──────────────────────────────────────── -->
+      <div class="seex-card">
+        <div class="seex-card__header">
+          <span class="seex-card__title">Zones (<%= zones.length %>)</span>
+        </div>
+        <div class="seex-table-wrap">
+          <table class="seex-table">
+            <thead>
+              <tr><th>Name</th><th>Exit?</th><th>Threshold</th><th>Area (m²)</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              <% for (const z of zones) { %>
+              <tr>
+                <td><strong><%= z.name %></strong></td>
+                <td><%= z.isExit ? '<span class="seex-badge seex-badge--exit">Exit</span>' : '—' %></td>
+                <td><%= z.capacityThreshold %></td>
+                <td><%= parseFloat(z.areaM2).toFixed(1) %></td>
+                <td>
+                  <details class="seex-inline-edit">
+                    <summary>Edit</summary>
+                    <form method="POST" action="/zones/<%= z.zoneId %>/edit" class="seex-inline-edit__form">
+                      <input class="seex-input" name="name" value="<%= z.name %>" maxlength="100" required aria-label="Zone name" />
+                      <select class="seex-select" name="isExit" aria-label="Zone type">
+                        <option value="0" <%= !z.isExit ? 'selected' : '' %>>Regular zone</option>
+                        <option value="1" <%= z.isExit ? 'selected' : '' %>>Exit zone</option>
+                      </select>
+                      <input class="seex-input" name="capacityThreshold" type="number" min="1" step="1" value="<%= z.capacityThreshold %>" required aria-label="Capacity threshold" />
+                      <input class="seex-input" name="areaM2" type="number" min="0.01" step="0.01" value="<%= z.areaM2 %>" required aria-label="Area in square metres" />
+                      <button type="submit" class="seex-btn seex-btn--primary seex-btn--sm">Save</button>
+                    </form>
+                  </details>
+                  <form method="POST" action="/zones/<%= z.zoneId %>/delete" style="display:inline"
+                    onsubmit="return confirm('Delete zone <%= z.name %>?')">
+                    <button type="submit" class="seex-btn seex-btn--danger seex-btn--sm">Delete</button>
+                  </form>
+                </td>
+              </tr>
+              <% } %>
+              <% if (!zones.length) { %>
+              <tr><td colspan="5" style="color:var(--seex-text-dim); text-align:center;">No zones yet. Add one below.</td></tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Add zone form -->
+        <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--seex-border);">
+          <h4 style="font-size:0.875rem; font-weight:600; margin-bottom:14px;">Add Zone</h4>
+          <form method="POST" action="/zones">
+            <div class="seex-grid-2" style="gap:10px;">
+              <div class="seex-form-group">
+                <label class="seex-label" for="z-name">Name</label>
+                <input id="z-name" class="seex-input" name="name" type="text" required placeholder="e.g. Lobby" />
+              </div>
+              <div class="seex-form-group">
+                <label class="seex-label" for="z-exit">Type</label>
+                <select id="z-exit" class="seex-select" name="isExit">
+                  <option value="0">Regular Zone</option>
+                  <option value="1">Exit Zone</option>
+                </select>
+              </div>
+              <div class="seex-form-group">
+                <label class="seex-label" for="z-cap">Capacity Threshold</label>
+                <input id="z-cap" class="seex-input" name="capacityThreshold" type="number" min="1" required value="30" />
+              </div>
+              <div class="seex-form-group">
+                <label class="seex-label" for="z-area">Area (m²)</label>
+                <input id="z-area" class="seex-input" name="areaM2" type="number" min="1" step="0.5" required value="50" />
+              </div>
+            </div>
+            <button id="zone-add-btn" type="submit" class="seex-btn seex-btn--primary">Add Zone</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ── Edge list ──────────────────────────────────────── -->
+      <div class="seex-card">
+        <div class="seex-card__header">
+          <span class="seex-card__title">Pathways / Edges (<%= Math.floor(edges.length / 2) %> bidirectional)</span>
+        </div>
+        <div class="seex-table-wrap">
+          <table class="seex-table">
+            <thead>
+              <tr><th>From</th><th>To</th><th>Distance (m)</th><th></th></tr>
+            </thead>
+            <tbody>
+              <%
+                // Show unique pairs only (smallest edgeId per pair)
+                const seen = new Set();
+                const uniqueEdges = [];
+                for (const e of edges) {
+                  const key = [Math.min(e.fromZoneId, e.toZoneId), Math.max(e.fromZoneId, e.toZoneId)].join('-');
+                  if (!seen.has(key)) { seen.add(key); uniqueEdges.push(e); }
+                }
+              %>
+              <% for (const e of uniqueEdges) { %>
+              <tr>
+                <td><%= e.fromName %></td>
+                <td><%= e.toName %></td>
+                <td>
+                  <details class="seex-inline-edit">
+                    <summary><%= parseFloat(e.distanceMeters).toFixed(1) %> m · Edit</summary>
+                    <form method="POST" action="/zones/edges/<%= e.edgeId %>/edit" class="seex-inline-edit__form">
+                      <select class="seex-select" name="fromZoneId" aria-label="Pathway start zone" required>
+                        <% for (const z of zones) { %><option value="<%= z.zoneId %>" <%= z.zoneId === e.fromZoneId ? 'selected' : '' %>><%= z.name %></option><% } %>
+                      </select>
+                      <select class="seex-select" name="toZoneId" aria-label="Pathway end zone" required>
+                        <% for (const z of zones) { %><option value="<%= z.zoneId %>" <%= z.zoneId === e.toZoneId ? 'selected' : '' %>><%= z.name %></option><% } %>
+                      </select>
+                      <input class="seex-input" name="distanceMeters" type="number" min="0.01" step="0.01" value="<%= e.distanceMeters %>" required aria-label="Distance in metres" />
+                      <button type="submit" class="seex-btn seex-btn--primary seex-btn--sm">Save</button>
+                    </form>
+                  </details>
+                </td>
+                <td>
+                  <form method="POST" action="/zones/edges/<%= e.edgeId %>/delete" style="display:inline"
+                        onsubmit="return confirm('Delete this pathway?')">
+                    <button type="submit" class="seex-btn seex-btn--danger seex-btn--sm">Remove</button>
+                  </form>
+                </td>
+              </tr>
+              <% } %>
+              <% if (!uniqueEdges.length) { %>
+              <tr><td colspan="4" style="color:var(--seex-text-dim); text-align:center;">No pathways yet.</td></tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Add edge form -->
+        <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--seex-border);">
+          <h4 style="font-size:0.875rem; font-weight:600; margin-bottom:14px;">Add Pathway (Bidirectional)</h4>
+          <form method="POST" action="/zones/edges">
+            <div class="seex-grid-2" style="gap:10px;">
+              <div class="seex-form-group">
+                <label class="seex-label" for="e-from">From Zone</label>
+                <select id="e-from" class="seex-select" name="fromZoneId" required>
+                  <option value="">Select…</option>
+                  <% for (const z of zones) { %>
+                  <option value="<%= z.zoneId %>"><%= z.name %></option>
+                  <% } %>
+                </select>
+              </div>
+              <div class="seex-form-group">
+                <label class="seex-label" for="e-to">To Zone</label>
+                <select id="e-to" class="seex-select" name="toZoneId" required>
+                  <option value="">Select…</option>
+                  <% for (const z of zones) { %>
+                  <option value="<%= z.zoneId %>"><%= z.name %></option>
+                  <% } %>
+                </select>
+              </div>
+              <div class="seex-form-group">
+                <label class="seex-label" for="e-dist">Distance (metres)</label>
+                <input id="e-dist" class="seex-input" name="distanceMeters" type="number" min="0.1" step="0.5" required value="10" />
+              </div>
+            </div>
+            <button id="edge-add-btn" type="submit" class="seex-btn seex-btn--primary">Add Pathway</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <footer class="seex-footer">SEEX v1.0 &mdash; Academic Prototype. NOT a certified life-safety system.</footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script src="/socket.io/socket.io.js"></script>
+</body>
+</html>
